@@ -14,15 +14,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install OCM CLI from open-component-model/open-component-model
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build OCM CLI from main (Sigstore is not yet in any release)
         run: |
           set -e
-          # The new OCM CLI lives in open-component-model/open-component-model.
-          # The legacy installer at https://ocm.software/install.sh installs the
-          # old CLI from open-component-model/ocm — which has no Sigstore support.
-          OCM_VERSION="${OCM_VERSION:-cli/v0.6.0}"
-          curl -fL -o /usr/local/bin/ocm \
-            "https://github.com/open-component-model/open-component-model/releases/download/${OCM_VERSION}/ocm-linux-amd64"
+          # Sigstore signing was wired into the CLI in commit 2cd584261
+          # (feat(cli): integrate cosign signing handler [2/2]) and is not
+          # in any tagged release yet. Build from main to test the feature.
+          mkdir -p /tmp/ocm-build
+          cd /tmp/ocm-build
+          git clone --depth 1 https://github.com/open-component-model/open-component-model.git
+          cd open-component-model/cli
+          go build -o /usr/local/bin/ocm ./main.go
           sudo chmod +x /usr/local/bin/ocm
           ocm version
 
