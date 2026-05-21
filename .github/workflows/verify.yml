@@ -1,0 +1,59 @@
+name: Verify CI-signed component
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build OCM CLI from main
+        run: |
+          set -e
+          mkdir -p /tmp/ocm-build
+          cd /tmp/ocm-build
+          git clone --depth 1 https://github.com/open-component-model/open-component-model.git
+          cd open-component-model/cli
+          go build -o /usr/local/bin/ocm ./main.go
+          sudo chmod +x /usr/local/bin/ocm
+          ocm version
+
+      - name: Generate ocmconfig.yaml with ghcr.io credentials
+        run: |
+          cat > ocmconfig.yaml <<EOF
+          type: generic.config.ocm.software/v1
+          configurations:
+          - type: credentials.config.ocm.software
+            consumers:
+            - identities:
+                - type: OCIRegistry
+                  hostname: ghcr.io
+              credentials:
+              - type: Credentials/v1
+                properties:
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+          EOF
+
+      - name: Generate verifier-spec.yaml
+        run: |
+          cat > verifier-spec.yaml <<EOF
+          type: SigstoreVerificationConfiguration/v1alpha1
+          certificateOIDCIssuer: https://token.actions.githubusercontent.com
+          certificateIdentity: https://github.com/morri-son/ocm-sigstore-ci-test/.github/workflows/sign.yml@refs/heads/main
+          EOF
+
+      - name: Verify component version
+        run: |
+          ocm verify cv \
+            --config ./ocmconfig.yaml \
+            --verifier-spec ./verifier-spec.yaml \
+            ghcr.io/morri-son/ocm-sigstore-ci-test//github.com/morri-son/ocm-sigstore-ci-test/helloworld:1.0.0
