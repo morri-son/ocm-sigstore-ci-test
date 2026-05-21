@@ -24,7 +24,7 @@ jobs:
           curl -fL -o /usr/local/bin/ocm \
             "https://github.com/open-component-model/open-component-model/releases/download/${OCM_VERSION}/ocm-linux-amd64"
           sudo chmod +x /usr/local/bin/ocm
-          ocm --version
+          ocm version
 
       - name: Build CTF archive
         run: |
