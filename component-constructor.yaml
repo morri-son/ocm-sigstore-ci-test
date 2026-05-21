@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://ocm.software/latest/schemas/bindings/go/constructor/schema-2020-12.json
+components:
+- name: github.com/morri-son/ocm-sigstore-ci-test/helloworld
+  version: 1.0.0
+  provider:
+    name: morri-son
+  resources:
+    - name: readme
+      type: plainText
+      version: 1.0.0
+      input:
+        type: File/v1
+        path: ./README.md

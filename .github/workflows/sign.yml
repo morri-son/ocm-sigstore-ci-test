@@ -1,0 +1,70 @@
+name: Sign component version with Sigstore (CI)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/open-component-model/cli:0.6.0
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show OCM version
+        run: ocm --version
+
+      - name: Build CTF archive
+        run: |
+          ocm add component-version \
+            --repository ctf::./ctf \
+            --constructor ./component-constructor.yaml
+
+      - name: Generate .ocmconfig with ghcr.io credentials
+        run: |
+          cat > .ocmconfig <<EOF
+          type: generic.config.ocm.software/v1
+          configurations:
+          - type: credentials.config.ocm.software
+            consumers:
+            - identities:
+                - type: OCIRegistry
+                  hostname: ghcr.io
+              credentials:
+              - type: Credentials/v1
+                properties:
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+            - identity:
+                type: SigstoreSigner/v1alpha1
+                signature: default
+              credentials:
+              - type: OIDCIdentityTokenProvider/v1alpha1
+          EOF
+
+      - name: Transfer to ghcr.io
+        run: |
+          ocm transfer cv \
+            --config ./.ocmconfig \
+            ctf::./ctf//github.com/morri-son/ocm-sigstore-ci-test/helloworld:1.0.0 \
+            ghcr.io/morri-son/ocm-sigstore-ci-test
+
+      - name: Sign component version
+        run: |
+          ocm sign cv \
+            --config ./.ocmconfig \
+            --signer-spec ./sigstore-sign.yaml \
+            ghcr.io/morri-son/ocm-sigstore-ci-test//github.com/morri-son/ocm-sigstore-ci-test/helloworld:1.0.0
+
+      - name: Show signed component
+        run: |
+          ocm get cv -o yaml \
+            --config ./.ocmconfig \
+            ghcr.io/morri-son/ocm-sigstore-ci-test//github.com/morri-son/ocm-sigstore-ci-test/helloworld:1.0.0
