@@ -1,9 +1,0 @@
-type: generic.config.ocm.software/v1
-configurations:
-- type: credentials.config.ocm.software
-  consumers:
-  - identity:
-      type: SigstoreSigner/v1alpha1
-      signature: default
-    credentials:
-    - type: OIDCIdentityTokenProvider/v1alpha1

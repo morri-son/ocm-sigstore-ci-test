@@ -32,9 +32,11 @@ jobs:
             --repository ctf::./ctf \
             --constructor ./component-constructor.yaml
 
-      - name: Generate .ocmconfig with ghcr.io credentials
+      - name: Generate ocmconfig.yaml with ghcr.io credentials
         run: |
-          cat > .ocmconfig <<EOF
+          # Use a non-default filename so the OCM CLI doesn't auto-discover
+          # this file via $PWD/.ocmconfig — we want explicit --config.
+          cat > ocmconfig.yaml <<EOF
           type: generic.config.ocm.software/v1
           configurations:
           - type: credentials.config.ocm.software
@@ -52,18 +54,18 @@ jobs:
       - name: Transfer to ghcr.io
         run: |
           ocm transfer cv \
-            --config ./.ocmconfig \
+            --config ./ocmconfig.yaml \
             ctf::./ctf//github.com/morri-son/ocm-sigstore-ci-test/helloworld:1.0.0 \
             ghcr.io/morri-son/ocm-sigstore-ci-test
 
       - name: Sign component version
         run: |
           ocm sign cv \
-            --config ./.ocmconfig \
+            --config ./ocmconfig.yaml \
             --signer-spec ./sigstore-sign.yaml \
             ghcr.io/morri-son/ocm-sigstore-ci-test//github.com/morri-son/ocm-sigstore-ci-test/helloworld:1.0.0
 
       - name: Show signed component
         run: |
-          ocm get cv -o yaml --config ./.ocmconfig \
+          ocm get cv -o yaml --config ./ocmconfig.yaml \
             ghcr.io/morri-son/ocm-sigstore-ci-test//github.com/morri-son/ocm-sigstore-ci-test/helloworld:1.0.0
