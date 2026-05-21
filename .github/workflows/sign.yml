@@ -2,14 +2,10 @@ name: Sign component version with Sigstore (CI)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 jobs:
   sign:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/open-component-model/cli:0.6.0
     permissions:
       contents: read
       id-token: write
@@ -18,8 +14,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show OCM version
-        run: ocm --version
+      - name: Install OCM CLI from open-component-model/open-component-model
+        run: |
+          set -e
+          # The new OCM CLI lives in open-component-model/open-component-model.
+          # The legacy installer at https://ocm.software/install.sh installs the
+          # old CLI from open-component-model/ocm — which has no Sigstore support.
+          OCM_VERSION="${OCM_VERSION:-cli/v0.6.0}"
+          curl -fL -o /usr/local/bin/ocm \
+            "https://github.com/open-component-model/open-component-model/releases/download/${OCM_VERSION}/ocm-linux-amd64"
+          sudo chmod +x /usr/local/bin/ocm
+          ocm --version
 
       - name: Build CTF archive
         run: |
@@ -65,6 +70,5 @@ jobs:
 
       - name: Show signed component
         run: |
-          ocm get cv -o yaml \
-            --config ./.ocmconfig \
+          ocm get cv -o yaml --config ./.ocmconfig \
             ghcr.io/morri-son/ocm-sigstore-ci-test//github.com/morri-son/ocm-sigstore-ci-test/helloworld:1.0.0
