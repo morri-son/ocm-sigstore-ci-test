@@ -47,11 +47,6 @@ jobs:
                 properties:
                   username: ${{ github.actor }}
                   password: ${{ secrets.GITHUB_TOKEN }}
-            - identity:
-                type: SigstoreSigner/v1alpha1
-                signature: default
-              credentials:
-              - type: OIDCIdentityTokenProvider/v1alpha1
           EOF
 
       - name: Transfer to ghcr.io
